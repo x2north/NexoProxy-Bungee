@@ -18,12 +18,14 @@ version = "0.1"
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.codemc.io/repository/maven-releases/")
 }
 
 dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     kapt("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     implementation("com.charleskorn.kaml:kaml:0.67.0")
+    implementation("com.github.retrooper:packetevents-velocity:2.11.2")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 

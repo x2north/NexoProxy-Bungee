@@ -1,13 +1,12 @@
 package com.nexomc.nexoproxy
 
 import com.charleskorn.kaml.Yaml
+import com.github.retrooper.packetevents.PacketEvents
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
 import com.google.inject.Inject
 import com.velocitypowered.api.event.ResultedEvent
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.connection.PluginMessageEvent
@@ -16,16 +15,26 @@ import com.velocitypowered.api.event.player.ServerResourcePackSendEvent
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.Plugin
+import com.velocitypowered.api.plugin.PluginContainer
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.ProxyServer
 import com.velocitypowered.api.proxy.ServerConnection
+import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
+import io.github.retrooper.packetevents.velocity.factory.VelocityPacketEventsBuilder
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import org.slf4j.Logger
 import java.nio.file.Files
 import java.nio.file.Path
 
 
 @Serializable
-data class NexoConfig(val debug: Boolean = false)
+data class NexoConfig(
+    val debug: Boolean = false,
+    val resourcePacks: Boolean = true,
+    val glyphs: Boolean = true,
+)
 
 @Plugin(
     id = "nexoproxy",
@@ -36,6 +45,7 @@ data class NexoConfig(val debug: Boolean = false)
 class NexoProxy @Inject constructor(
     val logger: Logger,
     val server: ProxyServer,
+    val container: PluginContainer,
     @DataDirectory val dataDirectory: Path
 ) {
 
@@ -45,11 +55,18 @@ class NexoProxy @Inject constructor(
 
     @Subscribe
     fun onProxyInitialization(event: ProxyInitializeEvent) {
+        PacketEvents.setAPI(VelocityPacketEventsBuilder.build(server, container, logger, dataDirectory))
+        PacketEvents.getAPI().load()
+        PacketEvents.getAPI().eventManager.registerListener(GlyphPacketListener())
+        PacketEvents.getAPI().init()
+
         val config = loadConfig()
         loadPacks()
 
-        listener = ResourcePackListener(logger, config.debug)
+        GlyphStore.enabled = config.glyphs
+        listener = ResourcePackListener(logger, config.debug, config.resourcePacks)
         server.channelRegistrar.register(NexoPackHelpers.PACK_HASH_CHANNEL)
+        server.channelRegistrar.register(MinecraftChannelIdentifier.from(GlyphStore.GLYPH_CHANNEL))
         server.eventManager.register(this, listener)
         server.commandManager.register(
             server.commandManager.metaBuilder("nexoproxy").aliases("nxp").plugin(this).build(),
@@ -60,12 +77,15 @@ class NexoProxy @Inject constructor(
     @Subscribe
     fun onProxyShutdown(event: ProxyShutdownEvent) {
         savePacks()
+        PacketEvents.getAPI().terminate()
     }
 
     fun reload(source: net.kyori.adventure.audience.Audience) {
         savePacks()
         val config = loadConfig()
         listener.debug = config.debug
+        listener.packHandlingEnabled = config.resourcePacks
+        GlyphStore.enabled = config.glyphs
         source.sendMessage(net.kyori.adventure.text.Component.text("[NexoProxy] Reloaded config and saved pack cache."))
         logger.info("Reloaded by ${if (source is com.velocitypowered.api.proxy.Player) source.username else "console"}")
     }
@@ -104,25 +124,38 @@ class NexoProxy @Inject constructor(
     }
 }
 
-class ResourcePackListener(val logger: Logger, @Volatile var debug: Boolean) {
+class ResourcePackListener(val logger: Logger, @Volatile var debug: Boolean, @Volatile var packHandlingEnabled: Boolean) {
 
     private fun debugLog(msg: String) {
         if (debug) logger.info(msg)
     }
 
-    // Called when a backend Nexo server sends us obfuscation data for a pack
     @Subscribe
-    fun PluginMessageEvent.onHashUpload() {
-        if (identifier != NexoPackHelpers.PACK_HASH_CHANNEL) return
+    fun PluginMessageEvent.onPluginMessage() {
+        when (identifier.id) {
 
-        val json = JsonParser.parseString(data.decodeToString()).asJsonObject
-        val pack = ResourcePackInfo(json)
+            // Pack obfuscation mapping from a backend Nexo server
+            NexoPackHelpers.PACK_HASH_CHANNEL.id -> {
+                val json = JsonParser.parseString(data.decodeToString()).asJsonObject
+                val pack = ResourcePackInfo(json)
+                NexoPackHelpers.addMapping(pack)
+                result = PluginMessageEvent.ForwardResult.handled()
+                val serverName = (source as ServerConnection).serverInfo.name
+                debugLog("Registered pack mapping: ${pack.unobfuscatedHash} -> ${pack.obfuscatedHash} from $serverName")
+            }
 
-        NexoPackHelpers.addMapping(pack)
-        result = PluginMessageEvent.ForwardResult.handled()
-
-        val serverName = (source as ServerConnection).serverInfo.name
-        debugLog("Registered obfuscation mapping: ${pack.unobfuscatedHash} -> ${pack.obfuscatedHash} from $serverName")
+            // Glyph Component mappings from a backend Nexo server
+            // Expected payload: {"heart": <adventure-gson-json>, "crown": <adventure-gson-json>, ...}
+            GlyphStore.GLYPH_CHANNEL -> {
+                val json = JsonParser.parseString(data.decodeToString()).asJsonObject
+                json.entrySet().forEach { (id, componentEl) ->
+                    GlyphStore.glyphComponents[id] = GsonComponentSerializer.gson().deserialize(componentEl.toString())
+                }
+                result = PluginMessageEvent.ForwardResult.handled()
+                val serverName = (source as ServerConnection).serverInfo.name
+                debugLog("Registered ${json.size()} glyph(s) from $serverName")
+            }
+        }
     }
 
     // Clean up player state on disconnect
@@ -139,6 +172,7 @@ class ResourcePackListener(val logger: Logger, @Volatile var debug: Boolean) {
     // Non-Nexo packs (packId not in our mappings) are always allowed through.
     @Subscribe
     fun ServerResourcePackRemoveEvent.onPackRemove() {
+        if (!packHandlingEnabled) return
         if (packId == null) {
             if (NexoPackHelpers.packHashTracker[serverConnection.player.uniqueId] != null) {
                 result = ResultedEvent.GenericResult.denied()
@@ -161,6 +195,7 @@ class ResourcePackListener(val logger: Logger, @Volatile var debug: Boolean) {
     // If the pack is not a Nexo pack: always allow through untouched.
     @Subscribe
     fun ServerResourcePackSendEvent.onPackSend() {
+        if (!packHandlingEnabled) return
         val player = serverConnection.player
         val incomingId = receivedResourcePack.hash?.toHexString()?.trim()!!
 
