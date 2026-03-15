@@ -21,6 +21,7 @@ import com.velocitypowered.api.proxy.ProxyServer
 import com.velocitypowered.api.proxy.ServerConnection
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import io.github.retrooper.packetevents.velocity.factory.VelocityPacketEventsBuilder
+import org.bstats.velocity.Metrics
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
@@ -46,7 +47,8 @@ class NexoProxy @Inject constructor(
     val logger: Logger,
     val server: ProxyServer,
     val container: PluginContainer,
-    @DataDirectory val dataDirectory: Path
+    @DataDirectory val dataDirectory: Path,
+    val metricsFactory: Metrics.Factory,
 ) {
 
     private val packsFile get() = dataDirectory.resolve(".packs.json")
@@ -55,6 +57,7 @@ class NexoProxy @Inject constructor(
 
     @Subscribe
     fun onProxyInitialization(event: ProxyInitializeEvent) {
+        metricsFactory.make(this, 30155)
         PacketEvents.setAPI(VelocityPacketEventsBuilder.build(server, container, logger, dataDirectory))
         PacketEvents.getAPI().load()
         PacketEvents.getAPI().eventManager.registerListener(GlyphPacketListener())

@@ -26,6 +26,7 @@ dependencies {
     kapt("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     implementation("com.charleskorn.kaml:kaml:0.67.0")
     implementation("com.github.retrooper:packetevents-velocity:2.11.2")
+    implementation("org.bstats:bstats-velocity:3.1.0")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
