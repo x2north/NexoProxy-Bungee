@@ -132,7 +132,7 @@ private fun resolveChildrenGlyphs(children: List<Component>): List<Component> {
     return if (result == children) children else result
 }
 
-class GlyphPacketListener : PacketListenerAbstract() {
+object GlyphPacketListener : PacketListenerAbstract() {
 
     override fun onPacketSend(event: PacketSendEvent) {
         if (!GlyphStore.enabled || GlyphStore.glyphComponents.isEmpty()) return

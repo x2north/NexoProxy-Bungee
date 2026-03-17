@@ -39,6 +39,7 @@ tasks {
     }
 
     shadowJar {
+        relocate("org.bstats", "com.nexomc.nexoproxy.bstats")
         destinationDirectory.set(File(copyJarPath))
     }
 

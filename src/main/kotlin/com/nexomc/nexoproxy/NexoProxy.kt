@@ -59,9 +59,7 @@ class NexoProxy @Inject constructor(
     fun onProxyInitialization(event: ProxyInitializeEvent) {
         metricsFactory.make(this, 30155)
         PacketEvents.setAPI(VelocityPacketEventsBuilder.build(server, container, logger, dataDirectory))
-        PacketEvents.getAPI().load()
-        PacketEvents.getAPI().eventManager.registerListener(GlyphPacketListener())
-        PacketEvents.getAPI().init()
+        loadPacketEvents()
 
         val config = loadConfig()
         loadPacks()
@@ -89,8 +87,19 @@ class NexoProxy @Inject constructor(
         listener.debug = config.debug
         listener.packHandlingEnabled = config.resourcePacks
         GlyphStore.enabled = config.glyphs
+        loadPacketEvents()
         source.sendMessage(net.kyori.adventure.text.Component.text("[NexoProxy] Reloaded config and saved pack cache."))
         logger.info("Reloaded by ${if (source is com.velocitypowered.api.proxy.Player) source.username else "console"}")
+    }
+
+    private fun loadPacketEvents() {
+        if (GlyphStore.enabled && GlyphStore.glyphComponents.isNotEmpty()) {
+            PacketEvents.getAPI().load()
+            PacketEvents.getAPI().eventManager.registerListener(GlyphPacketListener)
+            PacketEvents.getAPI().init()
+        } else runCatching {
+            PacketEvents.getAPI().eventManager.unregisterListener(GlyphPacketListener)
+        }
     }
 
     private fun loadConfig(): NexoConfig {
