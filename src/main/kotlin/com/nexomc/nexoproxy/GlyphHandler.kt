@@ -7,13 +7,15 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerListHeaderAndFooter
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerScoreboardObjective
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams
+import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 
 object GlyphStore {
     @Volatile var enabled: Boolean = true
     val glyphComponents: MutableMap<String, Component> = mutableMapOf()
-    const val GLYPH_CHANNEL = "nexo:glyph_info"
+    val GLYPH_CHANNEL = MinecraftChannelIdentifier.from("nexo:glyph_info")
+    const val HANDSHAKE_CHANNEL = "nexo:proxy_handshake"
 }
 
 private val GLYPH_TAG = Regex("<glyph:([^>]+)>")
