@@ -13,12 +13,11 @@ plugins {
 
 val copyJarPath = project.findProperty("proxy_velocity_plugin_path").toString()
 group = "com.nexomc"
-version = "0.1"
+version = "1.0"
 
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.opencollab.dev/maven-snapshots")
 }
 
@@ -43,7 +42,6 @@ tasks {
 
     shadowJar {
         relocate("org.bstats", "com.nexomc.nexoproxy.bstats")
-        relocate("com.github.retrooper", "com.nexomc.nexoproxy")
         destinationDirectory.set(File(copyJarPath))
     }
 
