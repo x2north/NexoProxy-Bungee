@@ -17,17 +17,21 @@ import com.velocitypowered.api.event.connection.LoginEvent
 import com.velocitypowered.api.event.player.configuration.PlayerEnterConfigurationEvent
 import com.velocitypowered.api.event.player.configuration.PlayerFinishConfigurationEvent
 import com.velocitypowered.api.event.player.configuration.PlayerFinishedConfigurationEvent
+import com.velocitypowered.api.event.player.ServerPostConnectEvent
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.api.proxy.ProxyServer
+import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import org.bstats.velocity.Metrics
 import org.slf4j.Logger
+import team.unnamed.creative.sound.SoundEntry.event
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.jvm.java
+import kotlin.jvm.optionals.getOrNull
 
 
 @Plugin(
@@ -43,6 +47,7 @@ class NexoProxy @Inject constructor(
     val metricsFactory: Metrics.Factory,
 ) {
 
+    val HANDSHAKE_CHANNEL = MinecraftChannelIdentifier.from("nexo:proxy_handshake")
     private val packsFile get() = dataDirectory.resolve(".packs.json")
     private val gson = GsonBuilder().setPrettyPrinting().create()
     private lateinit var packListener: ResourcePackListener
@@ -64,13 +69,20 @@ class NexoProxy @Inject constructor(
         proxyServer.eventManager.register(this, packListener)
 
         glyphListener = GlyphListener(logger, config)
-        proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL)
+        proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL, HANDSHAKE_CHANNEL)
         proxyServer.eventManager.register(this, glyphListener)
 
         proxyServer.commandManager.register(
             proxyServer.commandManager.metaBuilder("nexoproxy").aliases("nxp").plugin(this).build(),
             NexoProxyCommand(this)
         )
+    }
+
+    @Subscribe
+    fun ServerPostConnectEvent.onServerPostConnect() {
+        val server = player.currentServer.getOrNull() ?: return
+        if (server.server.playersConnected.size != 1) return
+        server.sendPluginMessage(HANDSHAKE_CHANNEL, byteArrayOf())
     }
 
     @Subscribe
