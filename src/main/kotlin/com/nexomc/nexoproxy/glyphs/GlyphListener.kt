@@ -35,6 +35,9 @@ class GlyphListener(val logger: Logger, var config: NexoConfig) {
                         defaultShadowColor = obj.get("shadow")?.takeUnless { it.isJsonNull }?.asInt,
                         permission = obj.get("permission")?.asString ?: "",
                         placeholders = obj.getAsJsonArray("placeholders")?.map { it.asString } ?: emptyList(),
+                        type = obj.get("type")?.takeUnless { it.isJsonNull }?.asString,
+                        texture = obj.get("texture")?.takeUnless { it.isJsonNull }?.asString,
+                        atlas = obj.get("atlas")?.takeUnless { it.isJsonNull }?.asString,
                     )
                     count++
                 }

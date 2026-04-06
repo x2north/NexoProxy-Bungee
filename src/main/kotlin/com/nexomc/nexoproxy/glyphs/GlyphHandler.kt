@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
+import net.kyori.adventure.text.`object`.ObjectContents
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.ShadowColor
 import net.kyori.adventure.text.format.TextColor
@@ -22,6 +23,9 @@ data class ProxyGlyph(
     val defaultShadowColor: Int?,
     val permission: String,
     val placeholders: List<String>,
+    val type: String? = null,
+    val texture: String? = null,
+    val atlas: String? = null,
 ) {
     val chars by lazy { unicodes.flatMap { it.toList() }.toCharArray() }
 
@@ -30,11 +34,25 @@ data class ProxyGlyph(
         shadowColor: Int? = defaultShadowColor,
         bitmapIndexRange: IntRange = IntRange.EMPTY
     ): Component {
-        return if (bitmapIndexRange == IntRange.EMPTY) {
-            baseComponent(colorable, shadowColor)
-        } else {
-            bitmapComponent(bitmapIndexRange, colorable, shadowColor)
+        return when (type) {
+            "sprite" -> spriteComponent()
+            "shader" -> shaderComponent()
+            else -> if (bitmapIndexRange == IntRange.EMPTY) {
+                baseComponent(colorable, shadowColor)
+            } else {
+                bitmapComponent(bitmapIndexRange, colorable, shadowColor)
+            }
         }
+    }
+
+    private fun spriteComponent(): Component {
+        val atlasKey = atlas?.let(Key::key) ?: return Component.empty()
+        val textureKey = texture?.let(Key::key) ?: return Component.empty()
+        return Component.`object`(ObjectContents.sprite(atlasKey, textureKey))
+    }
+
+    private fun shaderComponent(): Component {
+        return Component.text(unicodes.joinToString("")).font(font).color(TextColor.color(defaultColor!!))
     }
 
     private fun baseComponent(colorable: Boolean, shadowColor: Int?): Component {
@@ -72,6 +90,10 @@ private val GLYPH_TAG = Regex("""(?<!\\)<(?:glyph|g):([^>]+)>""")
 private val ESCAPED_GLYPH_TAG = Regex("""\\<(?:glyph|g):([^>]+)>""")
 private val SHIFT_TAG = Regex("""(?<!\\)<(?:shift|s):(-?\d+)>""")
 private val ESCAPED_SHIFT_TAG = Regex("""\\<(?:shift|s):(-?\d+)>""")
+
+private const val PRIVATE_USE_FIRST = 57344
+private val GIF_COLOR = TextColor.color(16711422)
+private fun unicode(index: Int): String = Character.toChars(PRIVATE_USE_FIRST + index).first().toString()
 
 private fun parseGlyphTag(argsString: String): Component? {
     val args = argsString.split(":")
