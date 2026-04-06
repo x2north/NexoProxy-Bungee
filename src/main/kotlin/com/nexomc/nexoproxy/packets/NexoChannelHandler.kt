@@ -2,11 +2,19 @@ package com.nexomc.nexoproxy.packets
 
 import com.nexomc.nexoproxy.NexoConfig
 import com.nexomc.nexoproxy.glyphs.resolveGlyphs
+import com.sun.tools.jdi.Packet
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.proxy.protocol.MinecraftPacket
+import com.velocitypowered.proxy.protocol.packet.BossBarPacket
 import com.velocitypowered.proxy.protocol.packet.HeaderAndFooterPacket
 import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder
+import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket
+import com.velocitypowered.proxy.protocol.packet.title.GenericTitlePacket
+import com.velocitypowered.proxy.protocol.packet.title.LegacyTitlePacket
+import com.velocitypowered.proxy.protocol.packet.title.TitleActionbarPacket
+import com.velocitypowered.proxy.protocol.packet.title.TitleSubtitlePacket
+import com.velocitypowered.proxy.protocol.packet.title.TitleTextPacket
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
@@ -70,6 +78,21 @@ internal class NexoChannelHandler(
             packet.entries.forEach { entry ->
                 entry.displayName = entry.displayName?.resolveGlyphs()
             }
+        }
+        registerReader<TitleTextPacket> { packet ->
+            packet.component = packet.component.resolveGlyphs()
+        }
+        registerReader<TitleSubtitlePacket> { packet ->
+            packet.component = packet.component.resolveGlyphs()
+        }
+        registerReader<TitleActionbarPacket> { packet ->
+            packet.component = packet.component.resolveGlyphs()
+        }
+        registerReader<LegacyTitlePacket> { packet ->
+            packet.component = packet.component?.resolveGlyphs()
+        }
+        registerReader<BossBarPacket> { packet ->
+            packet.name = packet.name?.resolveGlyphs()
         }
     }
 
