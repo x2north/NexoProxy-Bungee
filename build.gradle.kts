@@ -21,6 +21,7 @@ repositories {
     maven("https://repo.opencollab.dev/maven-snapshots")
     maven("https://repo.nexomc.com/releases/")
     maven("https://repo.nexomc.com/snapshots/")
+    maven("https://repo.william278.net/releases")
     mavenLocal()
 }
 
@@ -28,6 +29,8 @@ dependencies {
     compileOnly("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     compileOnly("com.velocitypowered:velocity-proxy:3.5.0-SNAPSHOT")
     compileOnly("io.netty:netty-all:4.2.10.Final")
+    compileOnly("net.william278:velocitab:1.5.2")
+    compileOnly("net.william278:velocityscoreboardapi:1.1.7")
 
     kapt("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     implementation("com.charleskorn.kaml:kaml:0.67.0")

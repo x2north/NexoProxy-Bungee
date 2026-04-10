@@ -20,6 +20,7 @@ import com.velocitypowered.api.event.player.configuration.PlayerFinishedConfigur
 import com.velocitypowered.api.event.player.ServerPostConnectEvent
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
+import com.velocitypowered.api.plugin.Dependency
 import com.velocitypowered.api.plugin.Plugin
 import com.velocitypowered.api.plugin.annotation.DataDirectory
 import com.velocitypowered.api.proxy.Player
@@ -32,13 +33,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.jvm.java
 import kotlin.jvm.optionals.getOrNull
+import kotlin.properties.Delegates
 
 
 @Plugin(
     id = "nexoproxy",
     name = "NexoProxy",
     version = BuildConstants.VERSION,
-    authors = ["boy0000"]
+    authors = ["boy0000"],
+    dependencies = [Dependency(id = "velocitab", optional = true)]
 )
 class NexoProxy @Inject constructor(
     val logger: Logger,
@@ -48,6 +51,8 @@ class NexoProxy @Inject constructor(
 ) {
 
     lateinit var config: NexoConfig internal set
+    var isVelocitabPresent: Boolean = false
+    internal set
 
     val HANDSHAKE_CHANNEL = MinecraftChannelIdentifier.from("nexo:proxy_handshake")
     private val packsFile get() = dataDirectory.resolve(".packs.json")
@@ -62,7 +67,9 @@ class NexoProxy @Inject constructor(
         loadPacks()
         GlyphStore.enabled = config.glyphs
 
-        proxyServer.eventManager.register(this, LoginEvent::class.java, LoginListener(config, logger))
+        isVelocitabPresent = proxyServer.pluginManager.getPlugin("velocitab").isPresent
+
+        proxyServer.eventManager.register(this, LoginEvent::class.java, LoginListener(this))
         proxyServer.eventManager.register(this, DisconnectEvent::class.java, -404, DisconnectListener(config, logger))
 
 

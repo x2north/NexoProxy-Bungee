@@ -1,16 +1,13 @@
 package com.nexomc.nexoproxy.packets
 
-import com.nexomc.nexoproxy.NexoConfig
+import com.nexomc.nexoproxy.NexoProxy
 import com.nexomc.nexoproxy.glyphs.resolveGlyphs
-import com.sun.tools.jdi.Packet
 import com.velocitypowered.api.proxy.Player
 import com.velocitypowered.proxy.protocol.MinecraftPacket
 import com.velocitypowered.proxy.protocol.packet.BossBarPacket
 import com.velocitypowered.proxy.protocol.packet.HeaderAndFooterPacket
 import com.velocitypowered.proxy.protocol.packet.UpsertPlayerInfoPacket
 import com.velocitypowered.proxy.protocol.packet.chat.ComponentHolder
-import com.velocitypowered.proxy.protocol.packet.config.StartUpdatePacket
-import com.velocitypowered.proxy.protocol.packet.title.GenericTitlePacket
 import com.velocitypowered.proxy.protocol.packet.title.LegacyTitlePacket
 import com.velocitypowered.proxy.protocol.packet.title.TitleActionbarPacket
 import com.velocitypowered.proxy.protocol.packet.title.TitleSubtitlePacket
@@ -18,14 +15,13 @@ import com.velocitypowered.proxy.protocol.packet.title.TitleTextPacket
 import io.netty.channel.ChannelDuplexHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelPromise
+import net.william278.velocitab.packet.UpdateTeamsPacket
 import org.jspecify.annotations.NullMarked
-import org.slf4j.Logger
 
 @NullMarked
 internal class NexoChannelHandler(
     private val player: Player,
-    private val config: NexoConfig,
-    private val logger: Logger
+    private val plugin: NexoProxy
 ) : ChannelDuplexHandler() {
 
     override fun channelRead(ctx: ChannelHandlerContext?, packet: Any?) {
@@ -40,7 +36,10 @@ internal class NexoChannelHandler(
         super.write(ctx, transformPacket(packet) ?: return, promise)
     }
 
-    inline fun <reified T : MinecraftPacket> registerTransformer(condition: Boolean = true, noinline transformer: (T) -> MinecraftPacket?) {
+    inline fun <reified T : MinecraftPacket> registerTransformer(
+        condition: Boolean = true,
+        noinline transformer: (T) -> MinecraftPacket?
+    ) {
         if (condition) packetTransformers[T::class.java] = { packet ->
             if (packet is T) transformer(packet)
             else packet
@@ -64,18 +63,25 @@ internal class NexoChannelHandler(
         return runCatching {
             entry.invoke(packet)
         }.onFailure {
-            if (config.debug) logger.info(it.stackTraceToString())
+            if (plugin.config.debug) plugin.logger.info(it.stackTraceToString())
         }.getOrDefault(packet)
     }
 
-    internal val packetTransformers: MutableMap<Class<out MinecraftPacket>, (MinecraftPacket) -> MinecraftPacket?> = mutableMapOf()
+    internal val packetTransformers = mutableMapOf<Class<out MinecraftPacket>, (MinecraftPacket) -> MinecraftPacket?>()
 
     init {
         registerTransformer<HeaderAndFooterPacket> { packet ->
             HeaderAndFooterPacket(packet.header.resolveGlyphs(), packet.footer.resolveGlyphs())
         }
+
+        if (plugin.isVelocitabPresent) registerReader<UpdateTeamsPacket> { packet ->
+            packet.displayName(packet.displayName()?.resolveGlyphs())
+            packet.prefix(packet.prefix()?.resolveGlyphs())
+            packet.suffix(packet.suffix()?.resolveGlyphs())
+        }
+
         registerReader<UpsertPlayerInfoPacket> { packet ->
-            packet.entries.forEach { entry ->
+            if (packet.actions.any { it in actionsToHandle }) packet.entries.forEach { entry ->
                 entry.displayName = entry.displayName?.resolveGlyphs()
             }
         }
@@ -103,10 +109,11 @@ internal class NexoChannelHandler(
     companion object {
         const val PACKET_KEY = "nexoproxy"
 
-        init {
-
-        }
-
+        private val actionsToHandle = setOf(
+            UpsertPlayerInfoPacket.Action.UPDATE_DISPLAY_NAME,
+            UpsertPlayerInfoPacket.Action.ADD_PLAYER,
+            UpsertPlayerInfoPacket.Action.UPDATE_LISTED
+        )
 
     }
 }
