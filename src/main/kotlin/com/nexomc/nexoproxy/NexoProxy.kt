@@ -47,6 +47,8 @@ class NexoProxy @Inject constructor(
     val metricsFactory: Metrics.Factory,
 ) {
 
+    lateinit var config: NexoConfig internal set
+
     val HANDSHAKE_CHANNEL = MinecraftChannelIdentifier.from("nexo:proxy_handshake")
     private val packsFile get() = dataDirectory.resolve(".packs.json")
     private val gson = GsonBuilder().setPrettyPrinting().create()
@@ -56,7 +58,7 @@ class NexoProxy @Inject constructor(
     @Subscribe
     fun onProxyInitialization(event: ProxyInitializeEvent) {
         metricsFactory.make(this, 30155)
-        val config = NexoConfig.loadConfig(dataDirectory)
+        config = NexoConfig.loadConfig(dataDirectory)
         loadPacks()
         GlyphStore.enabled = config.glyphs
 
@@ -64,11 +66,11 @@ class NexoProxy @Inject constructor(
         proxyServer.eventManager.register(this, DisconnectEvent::class.java, -404, DisconnectListener(config, logger))
 
 
-        packListener = ResourcePackListener(logger, config)
+        packListener = ResourcePackListener(this)
         proxyServer.channelRegistrar.register(NexoPackHelpers.PACK_HASH_CHANNEL)
         proxyServer.eventManager.register(this, packListener)
 
-        glyphListener = GlyphListener(logger, config)
+        glyphListener = GlyphListener(this)
         proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL, HANDSHAKE_CHANNEL)
         proxyServer.eventManager.register(this, glyphListener)
 
@@ -92,8 +94,7 @@ class NexoProxy @Inject constructor(
 
     fun reload(source: net.kyori.adventure.audience.Audience) {
         savePacks()
-        val config = NexoConfig.loadConfig(dataDirectory)
-        packListener.config = config
+        config = NexoConfig.loadConfig(dataDirectory)
         GlyphStore.enabled = config.glyphs
         source.sendMessage(net.kyori.adventure.text.Component.text("[NexoProxy] Reloaded config and saved pack cache."))
         logger.info("Reloaded by ${if (source is Player) source.username else "console"}")

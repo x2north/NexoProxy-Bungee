@@ -6,11 +6,14 @@ import net.kyori.adventure.text.Component
 class NexoProxyCommand(private val plugin: NexoProxy) : SimpleCommand {
 
     override fun execute(invocation: SimpleCommand.Invocation) {
-        val args = invocation.arguments()
-        if (args.firstOrNull() in setOf("reload", "rl")) {
-            plugin.reload(invocation.source())
-        } else {
-            invocation.source().sendMessage(Component.text("Usage: /nexoproxy reload|rl"))
+        val args = invocation.arguments().firstOrNull()
+        when (args) {
+            "reload", "rl" -> plugin.reload(invocation.source())
+            "debug" -> {
+                plugin.config = plugin.config.copy(debug = !plugin.config.debug)
+                plugin.config.saveConfig(plugin.dataDirectory)
+            }
+            else -> invocation.source().sendMessage(Component.text("Usage: /nexoproxy reload|rl"))
         }
     }
 

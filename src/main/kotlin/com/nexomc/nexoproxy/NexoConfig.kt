@@ -3,8 +3,10 @@ package com.nexomc.nexoproxy
 import com.charleskorn.kaml.Yaml
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.writeText
 
 @Serializable
 data class NexoConfig(
@@ -23,5 +25,11 @@ data class NexoConfig(
             }
             return Yaml.default.decodeFromString(configFile.toFile().readText())
         }
+    }
+
+    fun saveConfig(dataDirectory: Path) {
+        Files.createDirectories(dataDirectory)
+        val configFile = dataDirectory.resolve("config.yml")
+        configFile.writeText(Yaml.default.encodeToString(this))
     }
 }

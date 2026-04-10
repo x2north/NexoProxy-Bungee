@@ -1,20 +1,19 @@
 package com.nexomc.nexoproxy.glyphs
 
 import com.google.gson.JsonParser
-import com.nexomc.nexoproxy.NexoConfig
+import com.nexomc.nexoproxy.NexoProxy
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.PluginMessageEvent
 import com.velocitypowered.api.proxy.ServerConnection
 import net.kyori.adventure.key.Key
-import org.slf4j.Logger
 import team.unnamed.creative.serialize.minecraft.font.FontSerializer
 
-class GlyphListener(val logger: Logger, var config: NexoConfig) {
+class GlyphListener(val plugin: NexoProxy) {
 
     @Subscribe
     fun PluginMessageEvent.onPluginMessage() {
         when (identifier.id) {
-            GlyphStore.GLYPH_CHANNEL.id if (config.glyphs) -> {
+            GlyphStore.GLYPH_CHANNEL.id if (plugin.config.glyphs) -> {
                 val json = JsonParser.parseString(data.decodeToString()).asJsonObject
 
                 // Check for shift font override
@@ -43,7 +42,7 @@ class GlyphListener(val logger: Logger, var config: NexoConfig) {
                 }
                 result = PluginMessageEvent.ForwardResult.handled()
                 val serverName = (source as ServerConnection).serverInfo.name
-                if (config.debug) logger.info("Registered $count glyph(s) from $serverName")
+                if (plugin.config.debug) plugin.logger.info("Registered $count glyph(s) from $serverName")
             }
         }
     }

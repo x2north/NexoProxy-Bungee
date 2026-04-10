@@ -1,7 +1,7 @@
 package com.nexomc.nexoproxy.pack
 
 import com.google.gson.JsonParser
-import com.nexomc.nexoproxy.NexoConfig
+import com.nexomc.nexoproxy.NexoProxy
 import com.velocitypowered.api.event.ResultedEvent
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
@@ -9,12 +9,11 @@ import com.velocitypowered.api.event.connection.PluginMessageEvent
 import com.velocitypowered.api.event.player.ServerResourcePackRemoveEvent
 import com.velocitypowered.api.event.player.ServerResourcePackSendEvent
 import com.velocitypowered.api.proxy.ServerConnection
-import org.slf4j.Logger
 
-class ResourcePackListener(val logger: Logger, var config: NexoConfig) {
+class ResourcePackListener(val plugin: NexoProxy) {
 
     private fun debugLog(msg: String) {
-        if (config.debug) logger.info(msg)
+        if (plugin.config.debug) plugin.logger.info(msg)
     }
 
     @Subscribe
@@ -22,7 +21,7 @@ class ResourcePackListener(val logger: Logger, var config: NexoConfig) {
         when (identifier.id) {
 
             // Pack obfuscation mapping from a backend Nexo server
-            NexoPackHelpers.PACK_HASH_CHANNEL.id if (config.resourcePacks) -> {
+            NexoPackHelpers.PACK_HASH_CHANNEL.id if (plugin.config.resourcePacks) -> {
                 val json = JsonParser.parseString(data.decodeToString()).asJsonObject
                 val pack = ResourcePackInfo(json)
                 NexoPackHelpers.addMapping(pack)
@@ -47,7 +46,7 @@ class ResourcePackListener(val logger: Logger, var config: NexoConfig) {
     // Non-Nexo packs (packId not in our mappings) are always allowed through.
     @Subscribe
     fun ServerResourcePackRemoveEvent.onPackRemove() {
-        if (!config.resourcePacks) return
+        if (!plugin.config.resourcePacks) return
         if (packId == null) {
             if (NexoPackHelpers.packHashTracker[serverConnection.player.uniqueId] != null) {
                 result = ResultedEvent.GenericResult.denied()
@@ -70,7 +69,7 @@ class ResourcePackListener(val logger: Logger, var config: NexoConfig) {
     // If the pack is not a Nexo pack: always allow through untouched.
     @Subscribe
     fun ServerResourcePackSendEvent.onPackSend() {
-        if (!config.resourcePacks) return
+        if (!plugin.config.resourcePacks) return
         val player = serverConnection.player
         val incomingId = receivedResourcePack.hash?.toHexString()?.trim()!!
 
