@@ -2,9 +2,12 @@ package com.nexomc.nexoproxy.glyphs
 
 import com.google.gson.JsonParser
 import com.nexomc.nexoproxy.NexoProxy
+import com.velocitypowered.api.TextHolder
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.PluginMessageEvent
+import com.velocitypowered.api.event.scoreboard.ScoreboardEvent
 import com.velocitypowered.api.proxy.ServerConnection
+import com.velocitypowered.api.scoreboard.ProxyScoreboard
 import net.kyori.adventure.key.Key
 import team.unnamed.creative.serialize.minecraft.font.FontSerializer
 

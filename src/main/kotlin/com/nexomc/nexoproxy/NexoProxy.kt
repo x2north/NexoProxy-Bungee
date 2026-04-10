@@ -10,6 +10,7 @@ import com.nexomc.nexoproxy.pack.ResourcePackListener
 import com.nexomc.nexoproxy.pack.ResourcePackInfo
 import com.nexomc.nexoproxy.packets.DisconnectListener
 import com.nexomc.nexoproxy.glyphs.GlyphStore
+import com.nexomc.nexoproxy.glyphs.ScoreboardListener
 import com.nexomc.nexoproxy.packets.LoginListener
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
@@ -57,8 +58,6 @@ class NexoProxy @Inject constructor(
     val HANDSHAKE_CHANNEL = MinecraftChannelIdentifier.from("nexo:proxy_handshake")
     private val packsFile get() = dataDirectory.resolve(".packs.json")
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private lateinit var packListener: ResourcePackListener
-    private lateinit var glyphListener: GlyphListener
 
     @Subscribe
     fun onProxyInitialization(event: ProxyInitializeEvent) {
@@ -73,13 +72,13 @@ class NexoProxy @Inject constructor(
         proxyServer.eventManager.register(this, DisconnectEvent::class.java, -404, DisconnectListener(config, logger))
 
 
-        packListener = ResourcePackListener(this)
         proxyServer.channelRegistrar.register(NexoPackHelpers.PACK_HASH_CHANNEL)
-        proxyServer.eventManager.register(this, packListener)
+        proxyServer.eventManager.register(this, ResourcePackListener(this))
 
-        glyphListener = GlyphListener(this)
         proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL, HANDSHAKE_CHANNEL)
-        proxyServer.eventManager.register(this, glyphListener)
+        proxyServer.eventManager.register(this, GlyphListener(this))
+        if (proxyServer.pluginManager.getPlugin("velocity-scoreboard-api").isPresent)
+            proxyServer.eventManager.register(this, ScoreboardListener(this))
 
         proxyServer.commandManager.register(
             proxyServer.commandManager.metaBuilder("nexoproxy").aliases("nxp").plugin(this).build(),
