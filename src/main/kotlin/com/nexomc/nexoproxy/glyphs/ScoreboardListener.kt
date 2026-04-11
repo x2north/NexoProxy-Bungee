@@ -19,36 +19,32 @@ class ScoreboardListener(val plugin: NexoProxy) {
     @Subscribe
     fun TeamEntryEvent.Add.onScoreboardEvent() {
         val scoreboard = scoreboard as? ProxyScoreboard ?: return
-        plugin.proxyServer.scheduler.buildTask(plugin, Runnable {
-            scoreboard.teams.forEach { team ->
-                team.updateProperties { builder ->
-                    builder
-                        .displayName(team.displayName.resolveGlyphs())
-                        .prefix(team.prefix.resolveGlyphs())
-                        .suffix(team.suffix.resolveGlyphs())
-                }
+        scoreboard.teams.forEach { team ->
+            team.updateProperties { builder ->
+                builder
+                    .displayName(team.displayName.resolveGlyphs())
+                    .prefix(team.prefix.resolveGlyphs())
+                    .suffix(team.suffix.resolveGlyphs())
             }
-        })
+        }
     }
 
     @Subscribe
     fun TeamEvent.Register.onScoreboardEvent() {
         val scoreboard = scoreboard as? ProxyScoreboard ?: return
-        plugin.proxyServer.scheduler.buildTask(plugin, Runnable {
-            scoreboard.teams.forEach { team ->
-                team.updateProperties { builder ->
-                    builder
-                        .displayName(team.displayName.resolveGlyphs())
-                        .prefix(team.prefix.resolveGlyphs())
-                        .suffix(team.suffix.resolveGlyphs())
-                }
+        scoreboard.teams.forEach { team ->
+            team.updateProperties { builder ->
+                builder
+                    .displayName(team.displayName.resolveGlyphs())
+                    .prefix(team.prefix.resolveGlyphs())
+                    .suffix(team.suffix.resolveGlyphs())
             }
-        })
+        }
     }
 
     @Subscribe
     fun ObjectiveEvent.onScoreboardEvent() {
-        //if (this is ObjectiveEvent.Unregister) return
+        if (this is ObjectiveEvent.Unregister) return
         val scoreboard = scoreboard as? ProxyScoreboard ?: return
         scoreboard.objectives.forEach { objective ->
             objective.title = objective.title.resolveGlyphs()
