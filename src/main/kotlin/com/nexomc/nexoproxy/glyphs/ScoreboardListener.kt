@@ -4,32 +4,26 @@ import com.velocitypowered.api.TextHolder
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.scoreboard.ObjectiveEvent
 import com.velocitypowered.api.event.scoreboard.ScoreEvent
-import com.velocitypowered.api.event.scoreboard.TeamEntryEvent
 import com.velocitypowered.api.event.scoreboard.TeamEvent
 import com.velocitypowered.api.scoreboard.NumberFormat
-import com.velocitypowered.proxy.scoreboard.VelocityScoreboardManager
 
-class ScoreboardListener() {
+class ScoreboardListener {
 
-//    @Subscribe
-//    fun TeamEntryEvent.Add.onScoreboardEvent() {
-//        val scoreboard = VelocityScoreboardManager.getInstance().getProxyScoreboard(player)
-//        scoreboard.teams.forEach { team ->
-//            team.prefix = team.prefix.resolveGlyphs()
-//            team.suffix = team.suffix.resolveGlyphs()
-//            team.displayName = team.displayName.resolveGlyphs()
-//        }
-//    }
-//
-//    @Subscribe
-//    fun TeamEvent.Register.onScoreboardEvent() {
-//        val scoreboard = VelocityScoreboardManager.getInstance().getProxyScoreboard(player)
-//        scoreboard.teams.forEach { team ->
-//            team.prefix = team.prefix.resolveGlyphs()
-//            team.suffix = team.suffix.resolveGlyphs()
-//            team.displayName = team.displayName.resolveGlyphs()
-//        }
-//    }
+    @Subscribe
+    fun TeamEvent.Register.onScoreboardEvent() {
+        if (!isMutable) return
+        prefix = prefix.resolveGlyphs()
+        suffix = suffix.resolveGlyphs()
+        displayName = displayName.resolveGlyphs()
+    }
+
+    @Subscribe
+    fun TeamEvent.Update.onScoreboardEvent() {
+        if (!isMutable) return
+        prefix = prefix.resolveGlyphs()
+        suffix = suffix.resolveGlyphs()
+        displayName = displayName.resolveGlyphs()
+    }
 
     @Subscribe
     fun ScoreEvent.Set.onScore() {
