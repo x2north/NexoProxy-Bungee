@@ -30,8 +30,8 @@ dependencies {
     compileOnly("com.velocitypowered:velocity-proxy:3.5.0-SNAPSHOT")
     compileOnly("io.netty:netty-all:4.2.10.Final")
     compileOnly("net.william278:velocitab:1.5.2")
-    compileOnly("net.william278:velocityscoreboardapi:1.1.7")
-    //compileOnly(files("/home/sivert/Development/Servers/velocity/proxy/plugins/VelocityScoreboardAPI-1.1.7-2481ca6-indev.jar"))
+    //compileOnly("net.william278:velocityscoreboardapi:1.1.7")
+    compileOnly(files("/home/sivert/Development/Servers/velocity/proxy/plugins/VelocityScoreboardAPI-1.1.7-2481ca6-indev.jar"))
 
     kapt("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
     implementation("com.charleskorn.kaml:kaml:0.67.0")

@@ -15,9 +15,6 @@ import com.nexomc.nexoproxy.packets.LoginListener
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.event.connection.LoginEvent
-import com.velocitypowered.api.event.player.configuration.PlayerEnterConfigurationEvent
-import com.velocitypowered.api.event.player.configuration.PlayerFinishConfigurationEvent
-import com.velocitypowered.api.event.player.configuration.PlayerFinishedConfigurationEvent
 import com.velocitypowered.api.event.player.ServerPostConnectEvent
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
@@ -29,12 +26,10 @@ import com.velocitypowered.api.proxy.ProxyServer
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import org.bstats.velocity.Metrics
 import org.slf4j.Logger
-import team.unnamed.creative.sound.SoundEntry.event
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.jvm.java
 import kotlin.jvm.optionals.getOrNull
-import kotlin.properties.Delegates
 
 
 @Plugin(
@@ -78,7 +73,7 @@ class NexoProxy @Inject constructor(
         proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL, HANDSHAKE_CHANNEL)
         proxyServer.eventManager.register(this, GlyphListener(this))
         if (proxyServer.pluginManager.getPlugin("velocity-scoreboard-api").isPresent)
-            proxyServer.eventManager.register(this, ScoreboardListener(this))
+            proxyServer.eventManager.register(this, ScoreboardListener())
 
         proxyServer.commandManager.register(
             proxyServer.commandManager.metaBuilder("nexoproxy").aliases("nxp").plugin(this).build(),
