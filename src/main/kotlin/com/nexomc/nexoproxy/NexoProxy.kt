@@ -48,6 +48,7 @@ class NexoProxy @Inject constructor(
 
     lateinit var config: NexoConfig internal set
     var isVelocitabPresent: Boolean = false
+    var isScoreboardApiPresent: Boolean = false
     internal set
 
     val HANDSHAKE_CHANNEL = MinecraftChannelIdentifier.from("nexo:proxy_handshake")
@@ -62,6 +63,8 @@ class NexoProxy @Inject constructor(
         GlyphStore.enabled = config.glyphs
 
         isVelocitabPresent = proxyServer.pluginManager.getPlugin("velocitab").isPresent
+        isScoreboardApiPresent = (proxyServer.pluginManager.getPlugin("velocity-scoreboard-api").getOrNull()
+            ?.description?.version?.getOrNull()?.firstOrNull()?.digitToIntOrNull() ?: 0) >= 2
 
         proxyServer.eventManager.register(this, LoginEvent::class.java, LoginListener(this))
         proxyServer.eventManager.register(this, DisconnectEvent::class.java, -404, DisconnectListener(config, logger))
@@ -72,8 +75,8 @@ class NexoProxy @Inject constructor(
 
         proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL, HANDSHAKE_CHANNEL)
         proxyServer.eventManager.register(this, GlyphListener(this))
-        if (proxyServer.pluginManager.getPlugin("velocity-scoreboard-api").isPresent)
-            proxyServer.eventManager.register(this, ScoreboardListener())
+
+        if (isScoreboardApiPresent) proxyServer.eventManager.register(this, ScoreboardListener())
 
         proxyServer.commandManager.register(
             proxyServer.commandManager.metaBuilder("nexoproxy").aliases("nxp").plugin(this).build(),
