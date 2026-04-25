@@ -12,7 +12,6 @@ class PlayerConnectionListener(private val plugin: NexoProxy) : Listener {
     @EventHandler
     fun onServerConnected(event: ServerConnectedEvent) {
         val server = event.server ?: return
-        if (server.players.size != 1) return
         server.sendData(NexoProxy.HANDSHAKE_CHANNEL, ByteArray(0))
     }
 
