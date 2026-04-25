@@ -7,7 +7,7 @@ data class ResourcePackInfo(
     val unobfuscatedHash: String,
     val obfuscatedHash: String,
     val obfuscatedUuid: UUID = UUID.nameUUIDFromBytes(obfuscatedHash.hexToByteArray()),
-    val uuid: PackUUID,
+    val uuid: UUID,
 ) {
     constructor(json: JsonObject) : this(
         uuid = UUID.fromString(json.get("uuid").asString),

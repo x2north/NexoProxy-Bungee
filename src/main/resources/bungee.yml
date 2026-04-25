@@ -1,0 +1,11 @@
+name: NexoProxy
+main: com.nexomc.nexoproxy.NexoProxy
+version: 1.1
+author: boy0000
+permissions:
+  nexoproxy.admin:
+    default: op
+commands:
+  nexoproxy:
+    aliases: [ nxp ]
+    permission: nexoproxy.admin
