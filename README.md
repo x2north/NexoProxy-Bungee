@@ -1,13 +1,14 @@
-## A Velocity-Plugin Addon for [Nexo](https://nexomc.com/)
+## A BungeeCord Plugin Addon for [Nexo](https://nexomc.com/)
 
-This plugin is meant as an addon for my [Nexo](https://nexomc.com/) plugin.
-It aims to fix some of the headaches caused by proxy servers that Nexo itself cannot fix, mainly related to ResourcePacks & Glyphs.
+This plugin is a BungeeCord rewrite of the original Velocity-focused NexoProxy addon.
+It keeps cross-server synchronization features that are available through standard Bungee plugin messaging:
 
-### Blocking Duplicate ResourcePacks
-It will **block duplicate ResourcePacks** when switching servers across your network.
-It also supports blocking obfuscated NexoPacks when the original is identical on two servers.
-This means players wont have to unload & load the same ResourcePack when using Nexo on multiple backend servers on your network.
+- Nexo pack hash mapping synchronization (`nexo:pack_hash`)
+- Glyph metadata synchronization (`nexo:glyph_info`)
+- Proxy handshake forwarding (`nexo:proxy_handshake`)
+- Config reload/debug command (`/nexoproxy`)
 
-### Support for Glyphs
-It also adds **support for using Glyph-Tags** (`<glyph:id>`) in other Velocity-plugins like Velocitab & TAB, letting you use Nexo-Glyphs with ease in your other Velocity plugins.
-![Glyph-Tag being used in TAB config on Velocity](https://cdn.modrinth.com/data/cached_images/4d578b9a978b8d985850b23a03b6f91c0acc3065.png)
+### Notes on parity
+
+BungeeCord does not expose Velocity's resource-pack and scoreboard event APIs, so direct interception
+of pack send/remove and Velocity packet pipeline transformations are intentionally not included in this rewrite.

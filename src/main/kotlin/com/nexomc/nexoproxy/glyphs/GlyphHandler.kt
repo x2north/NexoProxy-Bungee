@@ -1,10 +1,8 @@
 package com.nexomc.nexoproxy.glyphs
 
-import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
-import net.kyori.adventure.text.`object`.ObjectContents
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.ShadowColor
 import net.kyori.adventure.text.format.TextColor
@@ -12,7 +10,7 @@ import net.kyori.adventure.text.format.TextColor
 object GlyphStore {
     @Volatile var enabled: Boolean = true
     val glyphs: MutableMap<String, ProxyGlyph> = mutableMapOf()
-    val GLYPH_CHANNEL = MinecraftChannelIdentifier.from("nexo:glyph_info")
+    const val GLYPH_CHANNEL = "nexo:glyph_info"
 }
 
 data class ProxyGlyph(
@@ -46,9 +44,9 @@ data class ProxyGlyph(
     }
 
     private fun spriteComponent(): Component {
-        val atlasKey = atlas?.let(Key::key) ?: return Component.empty()
-        val textureKey = texture?.let(Key::key) ?: return Component.empty()
-        return Component.`object`(ObjectContents.sprite(atlasKey, textureKey))
+        // BungeeCord environments commonly run Adventure versions without object-component support.
+        // Fallback to regular glyph rendering while preserving configured font/color/shadow behavior.
+        return baseComponent(colorable = false, shadowColor = defaultShadowColor)
     }
 
     private fun shaderComponent(): Component {

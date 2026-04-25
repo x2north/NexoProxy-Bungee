@@ -3,105 +3,61 @@ package com.nexomc.nexoproxy
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonParser
-import com.google.inject.Inject
-import com.nexomc.nexoproxy.glyphs.GlyphListener
-import com.nexomc.nexoproxy.pack.NexoPackHelpers
-import com.nexomc.nexoproxy.pack.ResourcePackListener
-import com.nexomc.nexoproxy.pack.ResourcePackInfo
-import com.nexomc.nexoproxy.packets.DisconnectListener
 import com.nexomc.nexoproxy.glyphs.GlyphStore
-import com.nexomc.nexoproxy.glyphs.ScoreboardListener
-import com.nexomc.nexoproxy.packets.LoginListener
-import com.velocitypowered.api.event.Subscribe
-import com.velocitypowered.api.event.connection.DisconnectEvent
-import com.velocitypowered.api.event.connection.LoginEvent
-import com.velocitypowered.api.event.player.ServerPostConnectEvent
-import com.velocitypowered.api.event.proxy.ProxyInitializeEvent
-import com.velocitypowered.api.event.proxy.ProxyShutdownEvent
-import com.velocitypowered.api.plugin.Dependency
-import com.velocitypowered.api.plugin.Plugin
-import com.velocitypowered.api.plugin.annotation.DataDirectory
-import com.velocitypowered.api.proxy.Player
-import com.velocitypowered.api.proxy.ProxyServer
-import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
-import org.bstats.velocity.Metrics
-import org.slf4j.Logger
+import com.nexomc.nexoproxy.listeners.GlyphMessageListener
+import com.nexomc.nexoproxy.listeners.PackMessageListener
+import com.nexomc.nexoproxy.listeners.PlayerConnectionListener
+import com.nexomc.nexoproxy.pack.NexoPackHelpers
+import com.nexomc.nexoproxy.pack.ResourcePackInfo
+import net.md_5.bungee.api.ProxyServer
+import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.plugin.Plugin
+import net.md_5.bungee.api.plugin.PluginManager
+import net.md_5.bungee.api.plugin.Command
+import net.md_5.bungee.api.CommandSender
+import org.bstats.bungeecord.Metrics
 import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.jvm.java
-import kotlin.jvm.optionals.getOrNull
 
+class NexoProxy : Plugin() {
 
-@Plugin(
-    id = "nexoproxy",
-    name = "NexoProxy",
-    version = BuildConstants.VERSION,
-    authors = ["boy0000"],
-    dependencies = [Dependency(id = "velocitab", optional = true)]
-)
-class NexoProxy @Inject constructor(
-    val logger: Logger,
-    val proxyServer: ProxyServer,
-    @DataDirectory val dataDirectory: Path,
-    val metricsFactory: Metrics.Factory,
-) {
+    lateinit var config: NexoConfig
+        internal set
 
-    lateinit var config: NexoConfig internal set
-    var isVelocitabPresent: Boolean = false
-    var isScoreboardApiPresent: Boolean = false
-    internal set
-
-    val HANDSHAKE_CHANNEL = MinecraftChannelIdentifier.from("nexo:proxy_handshake")
-    private val packsFile get() = dataDirectory.resolve(".packs.json")
+    private val packsFile get() = dataFolder.toPath().resolve(".packs.json")
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
-    @Subscribe
-    fun onProxyInitialization(event: ProxyInitializeEvent) {
-        metricsFactory.make(this, 30155)
-        config = NexoConfig.loadConfig(dataDirectory)
+    override fun onEnable() {
+        Metrics(this, 30155)
+        config = NexoConfig.loadConfig(dataFolder.toPath())
         loadPacks()
         GlyphStore.enabled = config.glyphs
 
-        isVelocitabPresent = proxyServer.pluginManager.getPlugin("velocitab").isPresent
-        isScoreboardApiPresent = (proxyServer.pluginManager.getPlugin("velocity-scoreboard-api").getOrNull()
-            ?.description?.version?.getOrNull()?.firstOrNull()?.digitToIntOrNull() ?: 0) >= 2
+        val pluginManager: PluginManager = proxy.pluginManager
+        pluginManager.registerListener(this, PlayerConnectionListener(this))
+        pluginManager.registerListener(this, PackMessageListener(this))
+        pluginManager.registerListener(this, GlyphMessageListener(this))
+        pluginManager.registerCommand(this, NexoProxyCommand(this))
 
-        proxyServer.eventManager.register(this, LoginEvent::class.java, LoginListener(this))
-        proxyServer.eventManager.register(this, DisconnectEvent::class.java, -404, DisconnectListener(config, logger))
+        proxy.registerChannel(NexoPackHelpers.PACK_HASH_CHANNEL)
+        proxy.registerChannel(GlyphStore.GLYPH_CHANNEL)
+        proxy.registerChannel(HANDSHAKE_CHANNEL)
 
-
-        proxyServer.channelRegistrar.register(NexoPackHelpers.PACK_HASH_CHANNEL)
-        proxyServer.eventManager.register(this, ResourcePackListener(this))
-
-        proxyServer.channelRegistrar.register(GlyphStore.GLYPH_CHANNEL, HANDSHAKE_CHANNEL)
-        proxyServer.eventManager.register(this, GlyphListener(this))
-
-        if (isScoreboardApiPresent) proxyServer.eventManager.register(this, ScoreboardListener())
-
-        proxyServer.commandManager.register(
-            proxyServer.commandManager.metaBuilder("nexoproxy").aliases("nxp").plugin(this).build(),
-            NexoProxyCommand(this)
-        )
+        logger.info("NexoProxy enabled on BungeeCord")
     }
 
-    @Subscribe
-    fun ServerPostConnectEvent.onServerPostConnect() {
-        val server = player.currentServer.getOrNull() ?: return
-        if (server.server.playersConnected.size != 1) return
-        server.sendPluginMessage(HANDSHAKE_CHANNEL, byteArrayOf())
-    }
-
-    @Subscribe
-    fun onProxyShutdown(event: ProxyShutdownEvent) {
+    override fun onDisable() {
         savePacks()
+        proxy.unregisterChannel(NexoPackHelpers.PACK_HASH_CHANNEL)
+        proxy.unregisterChannel(GlyphStore.GLYPH_CHANNEL)
+        proxy.unregisterChannel(HANDSHAKE_CHANNEL)
     }
 
-    fun reload(source: net.kyori.adventure.audience.Audience) {
+    fun reload(source: CommandSender) {
         savePacks()
-        config = NexoConfig.loadConfig(dataDirectory)
+        config = NexoConfig.loadConfig(dataFolder.toPath())
         GlyphStore.enabled = config.glyphs
-        source.sendMessage(net.kyori.adventure.text.Component.text("[NexoProxy] Reloaded config and saved pack cache."))
-        logger.info("Reloaded by ${if (source is Player) source.username else "console"}")
+        source.sendMessage(TextComponent("[NexoProxy] Reloaded config and saved pack cache."))
+        logger.info("Reloaded by ${source.name}")
     }
 
     private fun loadPacks() {
@@ -112,18 +68,21 @@ class NexoProxy @Inject constructor(
                 NexoPackHelpers.addMapping(ResourcePackInfo(element.asJsonObject))
             }
             logger.info("Loaded ${array.size()} cached pack mapping(s) from ${packsFile.fileName}")
-        }.onFailure { logger.warn("Failed to load pack cache: ${it.message}") }
+        }.onFailure { logger.warning("Failed to load pack cache: ${it.message}") }
     }
 
     private fun savePacks() {
         runCatching {
-            Files.createDirectories(dataDirectory)
+            Files.createDirectories(dataFolder.toPath())
             val entries = NexoPackHelpers.allMappings.toList().takeLast(20)
             val array = JsonArray()
             entries.forEach { array.add(it.toJson()) }
             packsFile.toFile().writeText(gson.toJson(array))
             logger.info("Saved ${entries.size} pack mapping(s) to ${packsFile.fileName}")
-        }.onFailure { logger.warn("Failed to save pack cache: ${it.message}") }
+        }.onFailure { logger.warning("Failed to save pack cache: ${it.message}") }
+    }
+
+    companion object {
+        const val HANDSHAKE_CHANNEL = "nexo:proxy_handshake"
     }
 }
-
