@@ -19,11 +19,13 @@ repositories {
     maven("https://repo.nexomc.com/releases/")
     maven("https://repo.nexomc.com/snapshots/")
     maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://libraries.minecraft.net")
     mavenLocal()
 }
 
 dependencies {
-    compileOnly("net.md-5:bungeecord-api:1.21-R0.4-SNAPSHOT")
+    compileOnly("net.md-5:bungeecord-api:1.21-R0.4")
+    implementation("com.mojang:brigadier:1.2.9")
 
     implementation("com.charleskorn.kaml:kaml:0.67.0")
     implementation("org.bstats:bstats-bungeecord:3.1.0")
@@ -38,6 +40,7 @@ tasks {
         relocate("org.bstats", "com.nexomc.nexoproxy.bstats")
         relocate("team.unnamed", "com.nexomc.nexoproxy.unnamed")
         relocate("net.kyori", "com.nexomc.nexoproxy.kyori")
+        relocate("com.mojang.brigadier", "com.nexomc.nexoproxy.libs.brigadier")
         if (copyJarPath != null) {
             destinationDirectory.set(File(copyJarPath))
         }
