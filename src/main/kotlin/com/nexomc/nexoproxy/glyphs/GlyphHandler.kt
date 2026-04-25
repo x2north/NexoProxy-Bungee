@@ -1,6 +1,5 @@
 package com.nexomc.nexoproxy.glyphs
 
-import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
@@ -12,7 +11,7 @@ import net.kyori.adventure.text.format.TextColor
 object GlyphStore {
     @Volatile var enabled: Boolean = true
     val glyphs: MutableMap<String, ProxyGlyph> = mutableMapOf()
-    val GLYPH_CHANNEL = MinecraftChannelIdentifier.from("nexo:glyph_info")
+    const val GLYPH_CHANNEL = "nexo:glyph_info"
 }
 
 data class ProxyGlyph(

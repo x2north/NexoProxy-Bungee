@@ -1,27 +1,20 @@
 package com.nexomc.nexoproxy
 
-import com.velocitypowered.api.command.SimpleCommand
-import net.kyori.adventure.text.Component
+import net.md_5.bungee.api.CommandSender
+import net.md_5.bungee.api.chat.TextComponent
+import net.md_5.bungee.api.plugin.Command
 
-class NexoProxyCommand(private val plugin: NexoProxy) : SimpleCommand {
+class NexoProxyCommand(private val plugin: NexoProxy) : Command("nexoproxy", "nexoproxy.admin", "nxp") {
 
-    override fun execute(invocation: SimpleCommand.Invocation) {
-        val args = invocation.arguments().firstOrNull()
-        when (args) {
-            "reload", "rl" -> plugin.reload(invocation.source())
+    override fun execute(sender: CommandSender, args: Array<out String>) {
+        when (args.firstOrNull()?.lowercase()) {
+            "reload", "rl" -> plugin.reload(sender)
             "debug" -> {
                 plugin.config = plugin.config.copy(debug = !plugin.config.debug)
-                plugin.config.saveConfig(plugin.dataDirectory)
+                plugin.config.saveConfig(plugin.dataFolder.toPath())
+                sender.sendMessage(TextComponent("[NexoProxy] Debug set to ${plugin.config.debug}"))
             }
-            else -> invocation.source().sendMessage(Component.text("Usage: /nexoproxy reload|rl"))
+            else -> sender.sendMessage(TextComponent("Usage: /nexoproxy reload|rl|debug"))
         }
-    }
-
-    override fun suggest(invocation: SimpleCommand.Invocation): List<String> {
-        return if (invocation.arguments().size <= 1) listOf("reload", "rl") else emptyList()
-    }
-
-    override fun hasPermission(invocation: SimpleCommand.Invocation): Boolean {
-        return invocation.source().hasPermission("nexoproxy.admin")
     }
 }
